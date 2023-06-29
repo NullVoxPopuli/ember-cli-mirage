@@ -1,14 +1,12 @@
 /* global requirejs */
 
 import require from 'require';
-import config from 'ember-get-config';
+import { macroCondition, dependencySatisfies } from '@embroider/macros';
 import assert from './assert';
-import { hasEmberData, isDsModel } from 'ember-cli-mirage/utils/ember-data';
+import { isDsModel } from 'ember-cli-mirage/utils/ember-data';
 import { Model, belongsTo, hasMany } from 'miragejs';
 import EmberDataSerializer from 'ember-cli-mirage/serializers/ember-data-serializer';
 import { _utilsInflectorCamelize as camelize } from 'miragejs';
-
-const { modulePrefix, podModulePrefix } = config;
 
 // Caches
 let DsModels, Models;
@@ -22,8 +20,13 @@ let DsSerializers, Serializers;
  * @hide
  * @return {Object} models
  */
-export function getDsModels() {
+export function getDsModels({ podModulePrefix, modulePrefix }) {
   if (DsModels) {
+    return DsModels;
+  }
+
+  if (macroCondition(!dependencySatisfies('ember-data', '*'))) {
+    DsModels ||= {};
     return DsModels;
   }
 
@@ -35,10 +38,6 @@ export function getDsModels() {
   );
 
   DsModels = {};
-
-  if (!hasEmberData) {
-    return DsModels;
-  }
 
   Object.keys(moduleMap).forEach((path) => {
     let matches =
@@ -62,12 +61,12 @@ export function getDsModels() {
  * @method discoverEmberDataModels
  * @return {Object} models
  */
-export function discoverEmberDataModels() {
+export function discoverEmberDataModels(envConfig) {
   if (Models) {
     return Models;
   }
 
-  let emberDataModels = getDsModels();
+  let emberDataModels = getDsModels(envConfig);
   Models = {};
 
   Object.keys(emberDataModels).forEach((modelName) => {
@@ -111,8 +110,13 @@ export function modelFor(name) {
  * @hide
  * @return {Object} serializers
  */
-export function getDsSerializers() {
+export function getDsSerializers({ modulePrefix, podModulePrefix }) {
   if (DsSerializers) {
+    return DsSerializers;
+  }
+
+  if (macroCondition(!dependencySatisfies('ember-data', '*'))) {
+    DsSerializers ||= {};
     return DsSerializers;
   }
 
@@ -127,10 +131,6 @@ export function getDsSerializers() {
   );
 
   DsSerializers = {};
-
-  if (!hasEmberData) {
-    return DsSerializers;
-  }
 
   Object.keys(moduleMap).forEach((path) => {
     let matches =
@@ -155,12 +155,12 @@ export function getDsSerializers() {
  * @method applyEmberDataSerializers
  * @return {Object} serializers
  */
-export function applyEmberDataSerializers(mirageSerializers = {}) {
+export function applyEmberDataSerializers(mirageSerializers = {}, envConfig) {
   if (Serializers) {
     return Serializers;
   }
 
-  let emberDataSerializers = getDsSerializers();
+  let emberDataSerializers = getDsSerializers(envConfig);
 
   // Start off with the mirage serializers,
   // so if there are any mirage serializers with no ED counterpart, they are in the list
